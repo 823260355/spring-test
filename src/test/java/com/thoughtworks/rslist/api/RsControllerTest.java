@@ -1,9 +1,13 @@
 package com.thoughtworks.rslist.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thoughtworks.rslist.domain.RsEvent;
+import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.dto.RsEventDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
+import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,23 +39,28 @@ class RsControllerTest {
   @Autowired UserRepository userRepository;
   @Autowired RsEventRepository rsEventRepository;
   @Autowired VoteRepository voteRepository;
+  @Autowired
+  TradeRepository tradeRepository;
   private UserDto userDto;
+
 
   @BeforeEach
   void setUp() {
     voteRepository.deleteAll();
     rsEventRepository.deleteAll();
-    userRepository.deleteAll();
+//    userRepository.deleteAll();
+    tradeRepository.deleteAll();
     userDto =
-        UserDto.builder()
-            .voteNum(10)
-            .phone("188888888888")
-            .gender("female")
-            .email("a@b.com")
-            .age(19)
-            .userName("idolice")
-            .build();
+            UserDto.builder()
+                    .voteNum(10)
+                    .phone("188888888888")
+                    .gender("female")
+                    .email("a@b.com")
+                    .age(19)
+                    .userName("idolice")
+                    .build();
   }
+
 
   @Test
   public void shouldGetRsEventList() throws Exception {
@@ -184,5 +193,16 @@ class RsControllerTest {
     List<VoteDto> voteDtos =  voteRepository.findAll();
     assertEquals(voteDtos.size(), 1);
     assertEquals(voteDtos.get(0).getNum(), 1);
+  }
+
+  @Test
+  public void should_buy_event() throws Exception {
+    Trade trade = new Trade(1, 1, 1);
+    Integer eventId = 2;
+    ObjectMapper objectMapper = new ObjectMapper();
+    String json = objectMapper.writeValueAsString(trade);
+
+    mockMvc.perform(post("/rs/buy/" + eventId).content(json).contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
   }
 }
