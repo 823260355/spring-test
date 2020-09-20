@@ -13,6 +13,7 @@ import com.thoughtworks.rslist.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -53,7 +54,7 @@ public class RsService {
     rsEventRepository.save(rsEvent);
   }
 
-  public void buy(Trade trade, int id) {
+  public void buy(Trade trade, int id) throws Exception {
     trade.setEventId(id);
     TradeDto tradeDto = TradeDto.builder()
             .rank(trade.getRank())
@@ -61,7 +62,34 @@ public class RsService {
             .amount(trade.getAmount())
             .eventId(trade.getEventId())
             .build();
-    tradeRepository.save(tradeDto);
+    List<TradeDto> tradeDtos = tradeRepository.findAllByRankOrderByAmountAsc(trade.getRank());
+    if (tradeDtos.size() == 0) {
+      tradeRepository.save(tradeDto);
+    } else {
+      TradeDto oldTrad = tradeDtos.get(0);
+      if (trade.getAmount() <= oldTrad.getAmount())
+        throw new Exception("金钱不足");
+      else {
+        tradeRepository.save(tradeDto);
 
+        // 获取该排行旧热搜
+        RsEventDto rsEventDtoOld = getRsEventDto(oldTrad.getEventId());
+
+        // 删除旧热搜
+        rsEventRepository.deleteById(oldTrad.getEventId());
+
+        // 获取要购买的热搜
+        RsEventDto rsEventDto = getRsEventDto(trade.getEventId());
+
+        // 更新该热搜的投票数和被替换的一样
+        rsEventDto.setVoteNum(rsEventDtoOld.getVoteNum());
+        rsEventRepository.save(rsEventDto);
+      }
+    }
+  }
+  private RsEventDto getRsEventDto(Integer eventId) throws Exception {
+    Optional<RsEventDto> res = rsEventRepository.findById(eventId);
+    if (!res.isPresent()) throw new Exception("该热搜不存在");
+    return res.get();
   }
 }
